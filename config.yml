@@ -1,0 +1,25 @@
+---
+
+feeds:
+  - id: bible
+    source: https://url
+    rules:
+      - type: episode_number_min
+        min: 640
+
+  - id: legend
+    source: https://url
+    rules:
+      - type: title_contains
+        value: "[REDIFF]"
+
+  - id: golang
+    source: https://url
+    rules:
+      - type: title_contains
+        value: "[rediffusion]"
+
+  - id: crime
+    source: https://url
+    rules:
+      - type: title_fraction_equals

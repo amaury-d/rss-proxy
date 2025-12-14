@@ -1,0 +1,13 @@
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>La bible en un an</title>
+    <item>
+      <title>Jour 639 – Évangile</title>
+      <itunes:episode>639</itunes:episode>
+    </item>
+    <item>
+      <title>Jour 640 – Apocalypse</title>
+      <itunes:episode>640</itunes:episode>
+    </item>
+  </channel>
+</rss>
