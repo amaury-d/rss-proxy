@@ -79,7 +79,16 @@ func (c *HTTPCache) Fetch(url string) ([]byte, CacheStatus, error) {
 		}
 		return nil, "", err
 	}
-	defer resp.Body.Close()
+
+	// Properly handle Close() error for errcheck compliance
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			Logger.Warn("failed to close response body",
+				"url", url,
+				"error", cerr,
+			)
+		}
+	}()
 
 	switch resp.StatusCode {
 	case http.StatusNotModified:

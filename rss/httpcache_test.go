@@ -27,7 +27,7 @@ func TestHTTPCache_HitMissRevalidate(t *testing.T) {
 		w.Header().Set("ETag", etag)
 		w.Header().Set("Last-Modified", lastMod)
 		w.WriteHeader(http.StatusOK)
-		w.Write(bodyV1)
+		_, _ = w.Write(bodyV1)
 	}))
 	defer srv.Close()
 
@@ -54,7 +54,7 @@ func TestHTTPCache_HitMissRevalidate(t *testing.T) {
 
 	// 2) HIT within TTL (no network)
 	now = now.Add(2 * time.Second)
-	b, st, err = cache.Fetch(srv.URL)
+	_, st, err = cache.Fetch(srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestHTTPCache_StaleOnUpstreamFailure(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", `"ok"`)
 		w.WriteHeader(http.StatusOK)
-		w.Write(body)
+		_, _ = w.Write(body)
 	}))
 	cache := NewHTTPCache(0)
 	cache.client = srv.Client()

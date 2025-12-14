@@ -30,8 +30,7 @@ func FilterXML(raw []byte, keepTitles map[string]bool) ([]byte, error) {
 		titleMatch := reTitle.FindSubmatch(item)
 
 		if titleMatch != nil {
-			title := string(bytes.TrimSpace(titleMatch[1]))
-			if keepTitles[title] {
+			if keepTitles[string(bytes.TrimSpace(titleMatch[1]))] {
 				buf.Write(item)
 			}
 		}

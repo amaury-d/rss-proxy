@@ -6,12 +6,12 @@ CONFIG   := config.yml
 
 help:
 	@echo "Targets disponibles:"
-	@echo "  make test        → lance tous les tests"
-	@echo "  make run         → lance le serveur en local"
-	@echo "  make build       → build le binaire"
-	@echo "  make clean       → supprime le binaire"
-	@echo "  make docker-build→ build l'image Docker"
-	@echo "  make docker-run  → run l'image Docker"
+	@echo "  make test        → run all tests"
+	@echo "  make run         → run the server locally"
+	@echo "  make build       → build binary"
+	@echo "  make clean       → clean project"
+	@echo "  make docker-build→ build docker image"
+	@echo "  make docker-run  → run docker image"
 
 test:
 	go test ./...
@@ -28,6 +28,6 @@ clean:
 docker-build:
 	docker build -t $(APP) .
 
-docker-run:
+docker-run: docker-build
 	docker run --rm -p $(PORT):8000 -v $(PWD)/$(CONFIG):/app/$(CONFIG) $(APP)
 

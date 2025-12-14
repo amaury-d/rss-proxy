@@ -18,7 +18,7 @@ func main() {
 
 	http.HandleFunc("/rss/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	log.Println("RSS proxy listening on :8000")

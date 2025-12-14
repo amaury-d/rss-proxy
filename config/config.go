@@ -1,3 +1,12 @@
+// Package config defines the YAML configuration model for rss-proxy.
+//
+// It provides:
+//   - The feed configuration schema
+//   - Declarative filtering rules
+//   - Minimal validation helpers
+//
+// The configuration is intentionally simple and explicit, and is designed
+// to be loaded once at startup.
 package config
 
 import (
