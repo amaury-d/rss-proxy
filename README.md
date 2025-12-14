@@ -29,7 +29,7 @@ It will probably work with other readers too.
 
 ## Example use cases
 
-* Remove replays (`[REDIFF]`) from a podcast
+* Keep episodes from a podcast with a specific regex in the title
 * Keep only the last episode of multipart stories (`[x/y]`)
 * Skip early episodes of long-running podcasts
 * Create personal filtered feeds
