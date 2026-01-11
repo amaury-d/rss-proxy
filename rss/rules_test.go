@@ -56,6 +56,31 @@ func TestTitleContainsRule(t *testing.T) {
 	}
 }
 
+func TestTitleExcludeRule(t *testing.T) {
+	feed := RSS{
+		Channel: Channel{
+			Items: []Item{
+				{Title: "Normal episode"},
+				{Title: "[REDIFF] Old episode"},
+			},
+		},
+	}
+
+	rules := []config.Rule{
+		{Type: "title_excludes", Value: "REDIFF"},
+	}
+
+	out := ApplyRules(feed, rules)
+
+	if len(out.Channel.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(out.Channel.Items))
+	}
+
+	if out.Channel.Items[0].Title != "Normal episode" {
+		t.Fatal("wrong item kept")
+	}
+}
+
 func TestTitleFractionEqualsRule(t *testing.T) {
 	feed := RSS{
 		Channel: Channel{

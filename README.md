@@ -47,6 +47,7 @@ feeds:
         value: "[REDIFF]"
 ```
 
+With your podcast client, then visit `http://localhost:8080/rss/legend-rediff.xml`
 ---
 
 ## Supported rules
@@ -54,6 +55,7 @@ feeds:
 | Rule                    | Description                                   |
 | ----------------------- | --------------------------------------------- |
 | `title_contains`        | Keep episodes whose title contains a string   |
+| `title_excludes`         | Remove episodes whose title contains a string |
 | `title_fraction_equals` | Keep only episodes where `[x/y]` and `x == y` |
 | `episode_number_min`    | Keep episodes with episode number ≥ N         |
 

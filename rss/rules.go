@@ -40,6 +40,9 @@ func matchRule(item Item, rule config.Rule) bool {
 	case "title_contains":
 		return strings.Contains(strings.ToUpper(title), strings.ToUpper(rule.Value))
 
+	case "title_excludes":
+		return !strings.Contains(strings.ToUpper(title), strings.ToUpper(rule.Value))
+
 	case "title_regex":
 		re := regexp.MustCompile(rule.Value)
 		return re.MatchString(title)
