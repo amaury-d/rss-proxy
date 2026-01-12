@@ -24,12 +24,11 @@ func TestHandlerEndToEnd(t *testing.T) {
 		ID:     "test",
 		Source: srv.URL,
 		Rules: []config.Rule{
+			// Should keep KEEP ME and CDATA KEEP, but not Fish & Chips nor DROP ME.
 			{Type: "title_contains", Value: "KEEP"},
 		},
 	}
 
-	// Configure the external base URL used for itunes:new-feed-url rewrite.
-	// This matches the config.yml server.base_url behavior.
 	handler := NewHandlerWithBaseURL(feed, cache, "https://podcasts.decre.me/rss")
 
 	req := httptest.NewRequest("GET", "/rss/test.xml", nil)
@@ -43,12 +42,20 @@ func TestHandlerEndToEnd(t *testing.T) {
 
 	body := w.Body.String()
 
-	if !strings.Contains(body, "KEEP ME") {
-		t.Fatal("expected item missing in response")
+	if !strings.Contains(body, "<title>KEEP ME</title>") {
+		t.Fatal("expected KEEP ME item missing")
+	}
+	// Critical: ensure CDATA titles are not dropped by the byte-level filter.
+	if !strings.Contains(body, "<title><![CDATA[CDATA KEEP]]></title>") {
+		t.Fatal("expected CDATA KEEP item missing")
 	}
 
-	if strings.Contains(body, "DROP ME") {
-		t.Fatal("unexpected item present in response")
+	if strings.Contains(body, "Fish &amp; Chips") {
+		t.Fatal("unexpected Fish & Chips item present")
+	}
+
+	if strings.Contains(body, "<title>DROP ME</title>") {
+		t.Fatal("unexpected DROP ME item present")
 	}
 
 	// Ensure itunes:new-feed-url is rewritten to the proxy URL (not upstream).

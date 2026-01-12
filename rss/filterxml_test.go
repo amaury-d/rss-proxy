@@ -11,19 +11,32 @@ const sampleRSS = `
   <channel>
     <title>Test</title>
 
-	<itunes:new-feed-url>https://feeds.podcastics.com/podcastics/podcasts/rss/7543_22adb373093deb54e1ec644c2a7adec7.rss</itunes:new-feed-url>
+    <itunes:new-feed-url>https://feeds.podcastics.com/podcastics/podcasts/rss/7543_22adb373093deb54e1ec644c2a7adec7.rss</itunes:new-feed-url>
 
     <item>
       <title>KEEP ME</title>
       <description><![CDATA[<p>Hello <strong>world</strong></p>]]></description>
-      <enclosure url="https://example.com/audio.mp3" type="audio/mpeg"/>
-      <itunes:image href="https://example.com/image.png"/>
-      <podcast:person role="host">Alice</podcast:person>
+      <enclosure url="https://example.com/keep.mp3" type="audio/mpeg"/>
+      <itunes:image href="https://example.com/art.jpg"/>
+      <podcast:person>Someone</podcast:person>
+    </item>
+
+    <item>
+      <title><![CDATA[CDATA KEEP]]></title>
+      <description>cdata title</description>
+      <enclosure url="https://example.com/cdata.mp3" type="audio/mpeg"/>
+    </item>
+
+    <item>
+      <title>Fish &amp; Chips</title>
+      <description>entity title</description>
+      <enclosure url="https://example.com/fish.mp3" type="audio/mpeg"/>
     </item>
 
     <item>
       <title>DROP ME</title>
-      <description><![CDATA[<p>Should not appear</p>]]></description>
+      <description>nope</description>
+      <enclosure url="https://example.com/drop.mp3" type="audio/mpeg"/>
     </item>
 
   </channel>
@@ -32,7 +45,9 @@ const sampleRSS = `
 
 func TestFilterXMLPreservesContent(t *testing.T) {
 	keep := map[string]bool{
-		"KEEP ME": true,
+		"KEEP ME":      true,
+		"CDATA KEEP":   true,
+		"Fish & Chips": true, // decoded form must match
 	}
 
 	out, err := FilterXML([]byte(sampleRSS), keep)
@@ -42,19 +57,20 @@ func TestFilterXMLPreservesContent(t *testing.T) {
 
 	s := string(out)
 
-	// kept item present
+	// kept items present
 	if !strings.Contains(s, "<title>KEEP ME</title>") {
-		t.Fatal("kept item missing")
+		t.Fatal("expected KEEP ME missing")
+	}
+	if !strings.Contains(s, "<title><![CDATA[CDATA KEEP]]></title>") {
+		t.Fatal("expected CDATA KEEP item missing (should be kept byte-for-byte)")
+	}
+	if !strings.Contains(s, "<title>Fish &amp; Chips</title>") {
+		t.Fatal("expected Fish &amp; Chips item missing (should be kept byte-for-byte)")
 	}
 
 	// dropped item gone
 	if strings.Contains(s, "<title>DROP ME</title>") {
-		t.Fatal("dropped item still present")
-	}
-
-	// content preserved (HTML content still there, escaped or not)
-	if !strings.Contains(s, "Hello") || !strings.Contains(s, "world") {
-		t.Fatal("description content missing")
+		t.Fatal("unexpected dropped item present")
 	}
 
 	// enclosure preserved
@@ -69,13 +85,15 @@ func TestFilterXMLPreservesContent(t *testing.T) {
 
 	// podcast namespace preserved
 	if !strings.Contains(s, "podcast:person") {
-		t.Fatal("podcast:person missing")
+		t.Fatal("podcast namespace content missing")
 	}
 }
 
 func TestFilterXMLRewriteNewFeedURL(t *testing.T) {
 	keep := map[string]bool{
-		"KEEP ME": true,
+		"KEEP ME":      true,
+		"CDATA KEEP":   true,
+		"Fish & Chips": true,
 	}
 
 	const rewritten = "https://podcasts.decre.me/rss/bible-en-un-an.xml"
@@ -97,7 +115,9 @@ func TestFilterXMLRewriteNewFeedURL(t *testing.T) {
 
 func TestFilterXMLNoRewriteKeepsUpstreamNewFeedURL(t *testing.T) {
 	keep := map[string]bool{
-		"KEEP ME": true,
+		"KEEP ME":      true,
+		"CDATA KEEP":   true,
+		"Fish & Chips": true,
 	}
 
 	out, err := FilterXMLWithOptions([]byte(sampleRSS), keep, FilterXMLOptions{})

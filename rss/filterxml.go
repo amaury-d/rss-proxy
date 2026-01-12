@@ -3,6 +3,7 @@ package rss
 import (
 	"bytes"
 	"encoding/xml"
+	"html"
 	"regexp"
 	"strings"
 )
@@ -24,8 +25,8 @@ type FilterXMLOptions struct {
 	// to the provided URL.
 	//
 	// This is useful when the upstream feed contains an itunes:new-feed-url pointing to
-	// a different URL (migration hint). Some podcast apps (incl. Apple Podcasts) may
-	// refuse to subscribe to the proxy feed if the tag indicates the feed lives elsewhere.
+	// a different URL (migration hint). Podcast apps may refuse to subscribe to the proxy
+	// feed if the tag indicates the feed lives elsewhere.
 	RewriteNewFeedURL string
 }
 
@@ -35,11 +36,36 @@ func xmlEscapeText(s string) string {
 	return buf.String()
 }
 
+// normalizeTitleBytes makes the byte-extracted <title> comparable with xml.Unmarshal results.
+// - strips optional <![CDATA[...]]> wrapper (regex extraction keeps it)
+// - unescapes XML/HTML entities (&amp;, &apos;, &#...)
+// - trims spaces
+func normalizeTitleBytes(b []byte) string {
+	s := strings.TrimSpace(string(b))
+
+	// Handle CDATA wrapper extracted by regex: <![CDATA[...]]>
+	if strings.HasPrefix(s, "<![CDATA[") && strings.HasSuffix(s, "]]>") {
+		s = strings.TrimPrefix(s, "<![CDATA[")
+		s = strings.TrimSuffix(s, "]]>")
+		s = strings.TrimSpace(s)
+	}
+
+	// Decode XML entities to match xml.Unmarshal output
+	s = html.UnescapeString(s)
+
+	return strings.TrimSpace(s)
+}
+
+// FilterXML filters the original RSS XML by keeping only items whose <title> matches keepTitles.
+//
+// For advanced behaviors, use FilterXMLWithOptions.
 func FilterXML(raw []byte, keepTitles map[string]bool) ([]byte, error) {
 	return FilterXMLWithOptions(raw, keepTitles, FilterXMLOptions{})
 }
 
+// FilterXMLWithOptions is the same as FilterXML, but allows additional RSS-safe rewrites.
 func FilterXMLWithOptions(raw []byte, keepTitles map[string]bool, opts FilterXMLOptions) ([]byte, error) {
+	// Optional: rewrite itunes:new-feed-url (kept as byte-level replacement; no XML re-serialization).
 	if u := strings.TrimSpace(opts.RewriteNewFeedURL); u != "" {
 		if reNewFeedURL.Match(raw) {
 			repl := []byte("<itunes:new-feed-url>" + xmlEscapeText(u) + "</itunes:new-feed-url>")
@@ -49,6 +75,7 @@ func FilterXMLWithOptions(raw []byte, keepTitles map[string]bool, opts FilterXML
 
 	matches := reItem.FindAllIndex(raw, -1)
 	if len(matches) == 0 {
+		// No <item> found; return original.
 		return raw, nil
 	}
 
@@ -58,13 +85,14 @@ func FilterXMLWithOptions(raw []byte, keepTitles map[string]bool, opts FilterXML
 	for _, m := range matches {
 		start, end := m[0], m[1]
 
+		// Write everything between previous item and this item (channel metadata etc.)
 		buf.Write(raw[last:start])
 
 		item := raw[start:end]
 		titleMatch := reTitle.FindSubmatch(item)
-
 		if titleMatch != nil {
-			if keepTitles[string(bytes.TrimSpace(titleMatch[1]))] {
+			title := normalizeTitleBytes(titleMatch[1])
+			if keepTitles[title] {
 				buf.Write(item)
 			}
 		}
@@ -72,6 +100,7 @@ func FilterXMLWithOptions(raw []byte, keepTitles map[string]bool, opts FilterXML
 		last = end
 	}
 
+	// Write the tail (closing channel/rss tags)
 	buf.Write(raw[last:])
 	return buf.Bytes(), nil
 }
