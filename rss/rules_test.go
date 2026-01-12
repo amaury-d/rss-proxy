@@ -112,3 +112,36 @@ func TestTitleFractionEqualsRule(t *testing.T) {
 		t.Fatal("wrong second item kept")
 	}
 }
+
+func TestLengthMaxRule(t *testing.T) {
+	feed := RSS{
+		Channel: Channel{
+			Items: []Item{
+				{Title: "Short", Duration: "59:59"},
+				{Title: "Edge", Duration: "01:00:00"},
+				{Title: "Too long", Duration: "3601"},
+				{Title: "No duration"},
+			},
+		},
+	}
+
+	rules := []config.Rule{
+		{Type: "length_max", Value: "3600"},
+	}
+
+	out := ApplyRules(feed, rules)
+
+	if len(out.Channel.Items) != 3 {
+		t.Fatalf("expected 3 items kept, got %d", len(out.Channel.Items))
+	}
+
+	if out.Channel.Items[0].Title != "Short" {
+		t.Fatal("wrong first item kept")
+	}
+	if out.Channel.Items[1].Title != "Edge" {
+		t.Fatal("wrong second item kept")
+	}
+	if out.Channel.Items[2].Title != "No duration" {
+		t.Fatal("wrong third item kept")
+	}
+}

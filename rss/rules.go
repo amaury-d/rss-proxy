@@ -37,6 +37,31 @@ func matchRule(item Item, rule config.Rule) bool {
 
 	switch rule.Type {
 
+	case "length_max":
+		// Keep items whose iTunes duration is <= the configured max.
+		// Supported formats for both item.Duration and rule.Value:
+		//   - "SS" (seconds)
+		//   - "MM:SS"
+		//   - "HH:MM:SS"
+		maxSec, ok := parseITunesDurationToSeconds(rule.Value)
+		if !ok {
+			// Invalid config: ignore the rule (keep the item).
+			Logger.Warn("Can't parse duration")
+			return true
+		}
+		if strings.TrimSpace(item.Duration) == "" {
+			// Some feeds don't provide duration; in that case, don't drop items.
+			Logger.Warn("No duration provided")
+			return true
+		}
+		durSec, ok := parseITunesDurationToSeconds(item.Duration)
+		if !ok {
+			// Unparseable duration: keep the item.
+			Logger.Warn("Can't parse duration")
+			return true
+		}
+		return durSec <= maxSec
+
 	case "title_contains":
 		return strings.Contains(strings.ToUpper(title), strings.ToUpper(rule.Value))
 
@@ -77,4 +102,70 @@ func matchRule(item Item, rule config.Rule) bool {
 	default:
 		return true
 	}
+}
+
+// parseITunesDurationToSeconds parses common iTunes duration formats.
+//
+// iTunes duration can be either:
+//   - integer seconds ("1234")
+//   - "MM:SS"
+//   - "HH:MM:SS" (or "H:MM:SS")
+//
+// Returns (seconds, true) on success, (0, false) otherwise.
+func parseITunesDurationToSeconds(s string) (int, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, false
+	}
+
+	if !strings.Contains(s, ":") {
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 0 {
+			return 0, false
+		}
+		return n, true
+	}
+
+	parts := strings.Split(s, ":")
+	if len(parts) < 2 || len(parts) > 3 {
+		return 0, false
+	}
+
+	toInt := func(p string) (int, bool) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return 0, false
+		}
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 0 {
+			return 0, false
+		}
+		return n, true
+	}
+
+	if len(parts) == 2 {
+		mm, ok := toInt(parts[0])
+		if !ok {
+			return 0, false
+		}
+		ss, ok := toInt(parts[1])
+		if !ok {
+			return 0, false
+		}
+		return mm*60 + ss, true
+	}
+
+	hh, ok := toInt(parts[0])
+	if !ok {
+		return 0, false
+	}
+	mm, ok := toInt(parts[1])
+	if !ok {
+		return 0, false
+	}
+	ss, ok := toInt(parts[2])
+	if !ok {
+		return 0, false
+	}
+	return hh*3600 + mm*60 + ss, true
 }
