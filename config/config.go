@@ -17,7 +17,18 @@ import (
 )
 
 type Config struct {
-	Feeds []Feed `yaml:"feeds"`
+	Server Server `yaml:"server"`
+	Feeds  []Feed `yaml:"feeds"`
+}
+
+type Server struct {
+	// BaseURL is the externally reachable base URL of the rss-proxy feed endpoint.
+	// Example: https://podcasts.decre.me/rss
+	//
+	// When set, rss-proxy rewrites <itunes:new-feed-url> (if present in the upstream
+	// feed) to point back to the proxied feed URL, instead of instructing podcast apps
+	// to migrate to the upstream provider URL.
+	BaseURL string `yaml:"base_url"`
 }
 
 type Feed struct {

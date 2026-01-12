@@ -28,7 +28,9 @@ func TestHandlerEndToEnd(t *testing.T) {
 		},
 	}
 
-	handler := NewHandler(feed, cache)
+	// Configure the external base URL used for itunes:new-feed-url rewrite.
+	// This matches the config.yml server.base_url behavior.
+	handler := NewHandlerWithBaseURL(feed, cache, "https://podcasts.decre.me/rss")
 
 	req := httptest.NewRequest("GET", "/rss/test.xml", nil)
 	w := httptest.NewRecorder()
@@ -47,5 +49,10 @@ func TestHandlerEndToEnd(t *testing.T) {
 
 	if strings.Contains(body, "DROP ME") {
 		t.Fatal("unexpected item present in response")
+	}
+
+	// Ensure itunes:new-feed-url is rewritten to the proxy URL (not upstream).
+	if !strings.Contains(body, "<itunes:new-feed-url>https://podcasts.decre.me/rss/test.xml</itunes:new-feed-url>") {
+		t.Fatal("expected itunes:new-feed-url to be rewritten to proxy URL")
 	}
 }

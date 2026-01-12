@@ -2,6 +2,7 @@ package rss
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"rss-proxy/config"
@@ -11,6 +12,10 @@ import (
 type Handler struct {
 	feed  config.Feed
 	cache *HTTPCache
+	// baseURL is the externally reachable base URL (from config.server.base_url).
+	// When set, it is used to rewrite <itunes:new-feed-url> so podcast apps keep
+	// subscribers on the proxied feed URL.
+	baseURL string
 }
 
 // NewHandler creates a handler with an injected HTTP cache.
@@ -21,9 +26,33 @@ func NewHandler(feed config.Feed, cache *HTTPCache) http.Handler {
 	}
 }
 
+// NewHandlerWithBaseURL creates a handler with an injected HTTP cache and an external base URL.
+func NewHandlerWithBaseURL(feed config.Feed, cache *HTTPCache, baseURL string) http.Handler {
+	return &Handler{
+		feed:    feed,
+		cache:   cache,
+		baseURL: baseURL,
+	}
+}
+
 // NewHandlerWithDefaultCache creates a handler with a default in-memory HTTP cache.
 func NewHandlerWithDefaultCache(feed config.Feed) http.Handler {
 	return NewHandler(feed, NewHTTPCache(15*time.Minute))
+}
+
+// NewHandlerWithDefaultCacheAndBaseURL creates a handler with a default in-memory HTTP cache
+// and an external base URL.
+func NewHandlerWithDefaultCacheAndBaseURL(feed config.Feed, baseURL string) http.Handler {
+	return NewHandlerWithBaseURL(feed, NewHTTPCache(15*time.Minute), baseURL)
+}
+
+func feedURLFromBase(baseURL, feedID string) string {
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		return ""
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
+	return baseURL + "/" + feedID + ".xml"
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +111,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Filter original XML at item level (byte-for-byte)
-	xmlOut, err := FilterXML(raw, keepTitles)
+	//
+	// Also rewrite <itunes:new-feed-url> if configured.
+	xmlOut, err := FilterXMLWithOptions(raw, keepTitles, FilterXMLOptions{
+		RewriteNewFeedURL: feedURLFromBase(h.baseURL, h.feed.ID),
+	})
 	if err != nil {
 		Logger.Error("failed to filter xml",
 			"feed_id", h.feed.ID,

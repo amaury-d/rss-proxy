@@ -12,7 +12,7 @@ func main() {
 	cfg := config.Load("config.yml")
 
 	for _, feed := range cfg.Feeds {
-		handler := rss.NewHandlerWithDefaultCache(feed)
+		handler := rss.NewHandlerWithDefaultCacheAndBaseURL(feed, cfg.Server.BaseURL)
 		http.Handle("/rss/"+feed.ID+".xml", handler)
 	}
 
